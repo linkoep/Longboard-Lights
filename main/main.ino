@@ -14,7 +14,9 @@ Adafruit_MMA8451 mma = Adafruit_MMA8451();
 //Color definitions
 uint32_t white = strip.Color(100,100,90);
 uint32_t red = strip.Color(127,0,0);
-uint32_t orange = strip.Color(100,40,0);
+uint32_t orange = strip.Color(127,60,0);
+uint32_t teal = strip.Color(0,50,45);
+uint32_t chillColor = teal;
 
 //Board Locations
 int startF = 0;
@@ -23,12 +25,16 @@ int startB = 67;
 int startL = 82;
 int endL = 128;
 
-int blinkerLength = 10;
-int blinkerSpeed = 7; //Milliseconds before update
+int chillLength = 10;
+int chillSpeed = 7; //Milliseconds before update
+
+int stepOnLength = 12;
+int stepOnSpeed = 7;
+
+int signalSpeed = 500;
 
 //accelerometer
-float v;
-float v0 = 0;
+
 
 void setup() {
   Serial.begin(9600);
@@ -47,44 +53,68 @@ void setup() {
 }
 
 void loop() {
- 
- delay(10);
- mma.read();
- 
- /* Get a new sensor event */ 
-  sensors_event_t event; 
-  mma.getEvent(&event);
-
-  /* Display the results (acceleration is measured in m/s^2) */
-  Serial.print("Y: \t"); Serial.print(event.acceleration.y); Serial.print("\t");
-v = v0 + event.acceleration.y * .01;
- Serial.println(v);
-if(v > 0)
- {
-  forward();
- }
- else if (v < 0)
- {
-  reverse();
- }
- else
- {
-  off();
- }
-
- v0 = v;
-
- if(mma.x > 300)
- {
-  signalRight();
- }
-
- if(mma.x < -300)
- {
-  signalLeft();
- }
-
- 
+  mma.read();
+  Serial.print(mma.x); Serial.print("\t"); Serial.println(mma.y);
+  if(mma.x < -2000 || mma.x > 2000)
+  {
+    off();
+  }
+  else
+  {
+    if(mma.y < -3500)
+    {
+      off();
+    }
+    else if(mma.y < -450)
+    {
+      forward();
+      if(mma.x > 600)
+     {
+      signalRight();
+     }
+     else if(mma.x < -460)
+     {
+      signalLeft();
+     }
+     else
+     {
+      chill();
+     }
+    }
+    else if(mma.y < -350)
+    {
+      delay(500);
+      if(mma.y > -450 && mma.y < -350)
+      {
+        stepOn();
+      }
+    }
+    else if(mma.y < -130)
+    {
+      off();
+    }
+    else if(mma.y < 3500)
+    {
+      forward();
+      if(mma.x > 600)
+     {
+      signalRight();
+     }
+     else if(mma.x < -460)
+     {
+      signalLeft();
+     }
+     else
+     {
+      chill();
+     }
+    }
+    else
+    {
+      off();
+    }
+  }
+  delay(10);
 }
 
 void forward(){
@@ -93,9 +123,19 @@ void forward(){
   strip.setPixelColor(i, white);
   }
 
+  for(int i = startR; i < startB; i++)
+  {
+    strip.setPixelColor(i, 0);
+  }
+
   for(int i = startB; i < startL; i ++)
   {
   strip.setPixelColor(i, red);
+  }
+
+  for(int i = startL; i <= endL; i++)
+  {
+    strip.setPixelColor(i, 0);
   }
 
   strip.show();
@@ -116,41 +156,60 @@ void reverse(){
 }
 
 void signalRight(){
-  for(int cycle = 0; cycle < 1; cycle++)
+  for(int i = startR; i < startB; i++)
   {
-    for(int leader = startR; leader < startB + blinkerLength; leader ++)
-    {
-      if(leader < startB)
-      {
-      strip.setPixelColor(leader, orange);
-      }
-      if(leader - blinkerLength >= startR)
-      {
-        strip.setPixelColor(leader - blinkerLength, 0); 
-      }
-      strip.show();
-      delay(blinkerSpeed);
-    }
+    strip.setPixelColor(i, orange);
   }
+  strip.show();
+  delay(signalSpeed);
+  for(int i = startR; i < startB; i++)
+  {
+    strip.setPixelColor(i, 0);
+  }
+  strip.show();
+  delay(signalSpeed);
 }
 
 void signalLeft(){
-  for(int cycle = 0; cycle < 1; cycle++)
+  for(int i = startL; i <= endL; i++)
   {
-    for(int leader = endL; leader > startL - blinkerLength - 1; leader --)
-    {
-      if(leader >= startL)
-      {
-      strip.setPixelColor(leader, orange);
-      }
-      if(leader + blinkerLength <= endL)
-      {
-        strip.setPixelColor(leader + blinkerLength, 0); 
-      }
-      strip.show();
-      delay(blinkerSpeed);
-    }
+    strip.setPixelColor(i, orange);
   }
+  strip.show();
+  delay(signalSpeed);
+  for(int i = startL; i <= endL; i++)
+  {
+    strip.setPixelColor(i, 0);
+  }
+  strip.show();
+  delay(signalSpeed);
+}
+
+void chill(){
+  for(int leader = startR; leader < startB + chillLength; leader ++)
+  {
+    if(leader < startB)
+    {
+    strip.setPixelColor(leader, chillColor);
+    }
+    if((endL + startR) - leader <=endL && (endL + startR) - leader >= startL)
+    {
+      strip.setPixelColor((endL + startR) - leader, chillColor);
+    }
+    
+    if(leader - chillLength >= startR)
+    {
+      strip.setPixelColor(leader - chillLength, 0); 
+    }
+
+    if(endL + startR - leader + chillLength <= endL)
+    {
+      strip.setPixelColor(endL + startR - leader + chillLength, 0);
+    }
+    strip.show();
+    delay(chillSpeed);
+  }
+  
 }
 
 void party(){
@@ -177,6 +236,26 @@ void party(){
   }
 }
 
+
+void stepOn(){
+    int follow;
+    for(int leader = 0; leader <= endL; leader ++)
+    {
+      if(leader - stepOnLength < 0)
+      {
+        follow = leader - stepOnLength + 128;
+      }
+      else
+      {
+        follow = leader - stepOnLength;
+      }
+      strip.setPixelColor(leader, teal);
+      strip.setPixelColor(follow, 0);
+      strip.show();
+      delay(stepOnSpeed);
+    }
+}
+
 void off(){
   for(int i = 0; i < strip.numPixels(); i++)
   {
@@ -184,3 +263,7 @@ void off(){
   }
   strip.show();
 }
+
+
+
+
