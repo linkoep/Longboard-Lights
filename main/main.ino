@@ -27,7 +27,8 @@ int blinkerLength = 10;
 int blinkerSpeed = 7; //Milliseconds before update
 
 //accelerometer
-
+float v;
+float v0 = 0;
 
 void setup() {
   Serial.begin(9600);
@@ -46,20 +47,32 @@ void setup() {
 }
 
 void loop() {
+ 
+ delay(10);
  mma.read();
-if(mma.y > 100)
+ 
+ /* Get a new sensor event */ 
+  sensors_event_t event; 
+  mma.getEvent(&event);
+
+  /* Display the results (acceleration is measured in m/s^2) */
+  Serial.print("Y: \t"); Serial.print(event.acceleration.y); Serial.print("\t");
+v = v0 + event.acceleration.y * .01;
+ Serial.println(v);
+if(v > 0)
  {
   forward();
  }
- else if (mma.y > -200)
+ else if (v < 0)
+ {
+  reverse();
+ }
+ else
  {
   off();
  }
- else if (mma.y < -500)
- {
-  forward();
- }
- 
+
+ v0 = v;
 
  if(mma.x > 300)
  {
@@ -171,7 +184,3 @@ void off(){
   }
   strip.show();
 }
-
-
-
-
